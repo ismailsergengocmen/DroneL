@@ -1,0 +1,90 @@
+global int altitudeLevel = $readAltitude$();
+global int currentAltitude;
+global int difAlt;
+global int degree = 0;
+
+/** 
+  * Function that represents a turn. The function has not any parameter because the turn's length is same for every turn. 
+  * @return void
+  */
+void $oneTurn$(){
+    $turnSpray$(true);
+    $moveHorizontally$(10000);  // Drone moves in east direction
+    
+    $turnSpray$(false);
+    while(degree < 90){  
+       $turnHeading$(1);       // Drone turns to south 
+       degree = degree + 1;
+    }
+    $turnSpray$(true);
+    
+    degree = 0;
+
+    $moveHorizontally$(1);      // Drone moves 1 meter down
+    
+    $turnSpray$(false);
+    do{
+       $turnHeading$(1);
+       degree = degree + 1; 
+    }while(degree < 90);        // Drone facing west at this point
+    $turnSpray$(true);
+
+    $moveHorizontally$(10000);  // Drone moves to west direction
+    
+    currentAltitude = $readAltitude$();
+
+    if(degree != 0){
+       $turnSpray$(false); 
+       $turnHeading$(-90); 	// Drone turns to south again
+      
+       if (currentAltitude < altitudeLevel){	// If drone lose altitude any reason, ascend to original level
+	   difAlt = altitudeLevel - currentAltitude;
+	   $moveVertically$(difAlt);
+       } 
+
+       if (currentAltitude > altitudeLevel){   // If drone is at higher level than necessary, descend to original level
+	   difAlt = currentAltitude - altitudeLevel;
+	   $moveVertically$(difAlt);
+       }
+    }
+    	
+    $turnSpray$(true);
+    $moveHorizontally$(1);       //Now drone is ready to go west again
+    degree = 0;
+    
+    $turnSpray$(false);
+    while(degree < 90){  
+    	$turnHeading$(-1);       //Drone turns to west direction 
+	degree = degree + 1;
+    }
+    return;				
+}
+
+/* Test program 2
+   Drone sprays rectangular shaped farm with 10 km horizontal edge and 5 km vertical edge moving on horizontal plane (in 2d)
+   Assume that drone start from the left corner of upper edge and facing left */
+$main$(){    
+    const string serial = $get$();
+    << serial_numbers >>[3] = {"A33DFA", "FA4G2", "AFVH6", };
+
+    $print$(serial);
+    try {
+    	$connect$(serial);
+    }
+    catch {
+	$print$("Problem with connection");
+    }
+    
+    // Check whether drone facing right heading
+    int currentHeading = $readHeader$();
+    if(currentHeading != 0){
+	$turnHeading$(currentHeading);
+    }
+
+    $moveVertically$(15); // Drone ascends to 1.5 meter up
+    
+    for(int lengthDist = 0; lengthDist < 5000; lengthDist = lengthDist + 1; ){
+        $oneTurn$();
+    }
+}
+
